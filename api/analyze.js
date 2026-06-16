@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set in Vercel' });
+  const apiKey = process.env.GEMINI_API_KEY_Root;
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY_Root not set in Vercel' });
 
   const { image_data, media_type } = req.body;
   if (!image_data || !media_type) return res.status(400).json({ error: 'Missing fields' });
@@ -32,30 +32,26 @@ export default async function handler(req, res) {
 root_status must be exactly: rootable, not_rootable, or unknown. Write reasons in simple English.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type, data: image_data } },
-            { type: 'text', text: prompt }
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: media_type, data: image_data } },
+            { text: prompt }
           ]
-        }]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1000 }
       })
     });
 
     const data = await response.json();
     if (data.error) return res.status(500).json({ error: data.error.message });
 
-    const raw = data.content?.map(i => i.text || '').join('') || '';
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const result = JSON.parse(raw.replace(/```json|```/g, '').trim());
     return res.status(200).json(result);
 
