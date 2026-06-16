@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Root Checker</title>
+<meta name="theme-color" content="#FF6B00">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+:root {
+  --bg:#000;--bg2:#0a0a0a;--bg3:#111;--bg4:#1c1c1e;--bg5:#2c2c2e;
+  --sep:#38383a;--orange:#FF6B00;--orange-dim:rgba(255,107,0,.15);
+  --orange-glow:rgba(255,107,0,.28);--text:#fff;
+  --text2:rgba(235,235,245,.8);--text3:rgba(235,235,245,.55);
+  --text4:rgba(235,235,245,.3);--green:#30d158;--blue:#0a84ff;
+  --red:#ff453a;--yellow:#ffd60a;
+  --radius:13px;--radius-lg:18px;--radius-xl:22px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,'Inter',BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;padding-bottom:60px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-up  {animation:fadeUp .5s cubic-bezier(.25,.46,.45,.94) both}
+.fade-up-2{animation:fadeUp .5s .08s cubic-bezier(.25,.46,.45,.94) both}
+.fade-up-3{animation:fadeUp .5s .16s cubic-bezier(.25,.46,.45,.94) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+/* ── Header ── */
+.header{padding:52px 20px 0;text-align:center}
+.header h1{font-size:30px;font-weight:700;letter-spacing:-.7px;line-height:1.15;margin-bottom:8px}
+.header h1 span{color:var(--orange)}
+.header p{font-size:14px;color:var(--text3);line-height:1.6}
+
+/* ── Section ── */
+.section{margin:28px 16px 0}
+.section-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 4px}
+
+/* ── Upload card ── */
+.upload-card{
+  background:linear-gradient(145deg,#1e1e22,#18181b);
+  border-radius:var(--radius-lg);border:1px solid #3a3a3e;
+  overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* Drop zone */
+.drop-zone{
+  border:2px dashed var(--sep);border-radius:14px;
+  padding:40px 20px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;
+  position:relative;background:rgba(255,255,255,.02);margin:14px;
+}
+.drop-zone.dragover{border-color:var(--orange);background:var(--orange-dim)}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{
+  width:54px;height:54px;border-radius:16px;
+  background:var(--orange-dim);border:1px solid var(--orange-glow);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;color:var(--orange);font-size:24px;
+}
+.drop-title{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.drop-sub{font-size:12px;color:var(--text4);line-height:1.7}
+
+/* Preview */
+.preview-area{display:none;flex-direction:column;padding:14px}
+.preview-area.visible{display:flex}
+.preview-img-wrap{
+  position:relative;border-radius:12px;overflow:hidden;
+  border:1px solid var(--sep);background:#0d0d0f;cursor:pointer;
+}
+.preview-img-wrap img{width:100%;display:block;max-height:300px;object-fit:contain;transition:opacity .2s}
+.preview-img-wrap:hover img{opacity:.65}
+.preview-hover{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.preview-img-wrap:hover .preview-hover{opacity:1}
+.preview-hover i{font-size:22px;color:#fff}
+.preview-hover span{font-size:12px;font-weight:600;color:rgba(255,255,255,.8)}
+.preview-change-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* Preview loader overlay */
+.preview-loader{
+  display:none;position:absolute;inset:0;
+  background:rgba(0,0,0,.72);border-radius:12px;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  z-index:5;
+}
+.preview-loader.visible{display:flex}
+.preview-loader .spin-sm{
+  width:32px;height:32px;
+  border:3px solid rgba(255,255,255,.15);border-top-color:var(--orange);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+.preview-loader span{font-size:12px;font-weight:600;color:var(--text2)}
+
+/* ── Analyze button ── */
+.analyze-btn{
+  width:100%;background:var(--orange);color:#fff;border:none;
+  border-radius:var(--radius);padding:16px;font-size:17px;font-weight:700;
+  font-family:inherit;cursor:pointer;letter-spacing:-.2px;
+  transition:opacity .15s,transform .1s;
+  box-shadow:0 6px 24px rgba(255,107,0,.35);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.analyze-btn:active{opacity:.85;transform:scale(.98)}
+.analyze-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.analyze-btn.flash-green{background:var(--green)!important;box-shadow:0 6px 24px rgba(48,209,88,.4)!important}
+
+/* ── Loading card ── */
+.loading-card{
+  display:none;
+  background:linear-gradient(145deg,#1e1e22,#18181b);
+  border-radius:var(--radius-lg);border:1px solid #3a3a3e;
+  padding:30px 20px;text-align:center;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+.loading-card.visible{display:block}
+.spin-lg{
+  width:48px;height:48px;margin:0 auto 16px;
+  border:3px solid var(--sep);border-top-color:var(--orange);
+  border-radius:50%;animation:spin .75s linear infinite;
+}
+.loading-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.loading-sub{font-size:12px;color:var(--text4)}
+.prog-wrap{background:var(--bg5);border-radius:4px;height:4px;overflow:hidden;margin:16px 0 0;display:none}
+.prog-wrap.visible{display:block}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--orange),#FF9A00);border-radius:4px;width:0%;transition:width .35s ease}
+
+/* ── Error box ── */
+.error-box{
+  display:none;background:#1f0d0d;border:1px solid #3a1a1a;
+  border-radius:var(--radius);padding:14px 16px;
+  font-size:13px;color:#ff6b6b;align-items:center;gap:10px;
+}
+.error-box.visible{display:flex}
+.error-box i{font-size:16px;flex-shrink:0}
+
+/* ── Result bottom sheet ── */
+.result-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);z-index:500;
+  align-items:flex-end;justify-content:center;
+}
+.result-overlay.active{display:flex}
+
+.result-sheet{
+  background:#1c1c1e;border-radius:24px 24px 0 0;
+  border-top:1px solid #3a3a3e;
+  width:100%;max-width:520px;max-height:90dvh;
+  overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,16px);
+  animation:sheetUp .35s cubic-bezier(.25,.46,.45,.94) both;
+}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:#3a3a3e;margin:12px auto 0}
+
+/* Status banner */
+.status-banner{
+  margin:16px 14px;border-radius:14px;
+  padding:16px;display:flex;align-items:center;gap:14px;
+}
+.status-banner.rootable    {background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.25)}
+.status-banner.not-rootable{background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.25)}
+.status-banner.unknown     {background:rgba(255,214,10,.1);border:1px solid rgba(255,214,10,.25)}
+
+.status-icon-wrap{
+  width:48px;height:48px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.rootable     .status-icon-wrap{background:rgba(48,209,88,.15)}
+.not-rootable .status-icon-wrap{background:rgba(255,69,58,.15)}
+.unknown      .status-icon-wrap{background:rgba(255,214,10,.15)}
+
+.status-text h2{font-size:16px;font-weight:700;margin-bottom:3px}
+.rootable     .status-text h2{color:var(--green)}
+.not-rootable .status-text h2{color:var(--red)}
+.unknown      .status-text h2{color:var(--yellow)}
+.status-text p{font-size:12px;color:var(--text3);line-height:1.5}
+
+/* Info section */
+.info-block{
+  margin:0 14px 14px;
+  background:#0d0d0f;border:1px solid var(--sep);
+  border-radius:14px;overflow:hidden;
+}
+.info-block-header{
+  padding:10px 14px;border-bottom:1px solid var(--sep);
+  font-size:11px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--orange);
+}
+.info-row{
+  display:flex;justify-content:space-between;
+  align-items:flex-start;padding:10px 14px;
+  border-bottom:1px solid #1a1a1a;gap:12px;
+}
+.info-row:last-child{border-bottom:none}
+.info-row .lbl{font-size:12px;color:var(--text3);flex-shrink:0;min-width:100px}
+.info-row .val{font-size:12px;color:var(--text2);font-weight:500;text-align:right;word-break:break-word}
+
+/* Reasons */
+.reasons-wrap{margin:0 14px 14px}
+.reasons-header{
+  padding:10px 14px;
+  font-size:11px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--orange);
+  background:#0d0d0f;border:1px solid var(--sep);
+  border-radius:14px 14px 0 0;border-bottom:none;
+}
+.reason-item{
+  background:#0d0d0f;border:1px solid var(--sep);border-top:none;
+  padding:11px 14px;display:flex;gap:10px;align-items:flex-start;
+}
+.reason-item:last-child{border-radius:0 0 14px 14px}
+.reason-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0;margin-top:5px}
+.reason-text{font-size:12.5px;color:var(--text2);line-height:1.55}
+
+/* Contact */
+.contact-wrap{margin:0 14px 20px}
+.contact-note{font-size:12px;color:var(--text3);text-align:center;margin-bottom:10px}
+.btn-wa{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);
+  color:#25d366;border-radius:var(--radius);padding:15px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  text-decoration:none;font-family:inherit;transition:all .15s;
+}
+.btn-wa:hover{background:rgba(37,211,102,.2)}
+.btn-wa:active{transform:scale(.97);opacity:.8}
+.btn-wa i{font-size:18px}
+
+/* Close row */
+.close-row{padding:14px;border-top:1px solid var(--sep);display:flex;justify-content:center}
+.btn-close{
+  background:#2c2c2e;border:1px solid var(--sep);border-radius:10px;
+  padding:10px 32px;font-size:13px;font-weight:600;color:var(--text2);
+  cursor:pointer;font-family:inherit;transition:background .15s;
+}
+.btn-close:hover{background:#3a3a3e}
+
+/* ── Footer ── */
+.footer{
+  padding:28px 20px 40px;display:flex;flex-direction:column;
+  align-items:center;gap:14px;border-top:1px solid var(--sep);margin-top:40px;
+}
+.footer-links{display:flex;flex-wrap:wrap;justify-content:center;gap:7px}
+.footer-link{
+  display:flex;align-items:center;gap:5px;
+  background:var(--bg4);border:1px solid var(--sep);border-radius:100px;
+  padding:5px 11px;font-size:11px;font-weight:500;color:var(--text2);
+  text-decoration:none;transition:border-color .15s,color .15s;white-space:nowrap;
+}
+.footer-link:hover{border-color:var(--orange);color:var(--orange)}
+.footer-copy{font-size:11px;color:var(--text4);text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header fade-up">
+  <h1>Root <span>Checker</span></h1>
+  <p>Upload your phone's About screen screenshot.<br>AI will analyze and tell you if it can be rooted.</p>
+</div>
+
+<!-- Upload -->
+<div class="section fade-up-2">
+  <div class="section-label">Screenshot</div>
+  <div class="upload-card">
+
+    <div class="drop-zone" id="dropZone"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+      <input type="file" id="fileInput" accept="image/*" onchange="onFileChange(this)">
+      <div class="drop-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+      <div class="drop-title">Drop screenshot here</div>
+      <div class="drop-sub">or tap to browse<br>About Phone / Device Info screen</div>
+    </div>
+
+    <div class="preview-area" id="previewArea">
+      <div class="preview-img-wrap" id="previewWrap">
+        <img id="previewImg" src="" alt="Preview">
+        <div class="preview-hover">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+          <span>Change Screenshot</span>
+        </div>
+        <input type="file" class="preview-change-input" accept="image/*" onchange="onFileChange(this)">
+        <div class="preview-loader" id="previewLoader">
+          <div class="spin-sm"></div>
+          <span>Loading image...</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Analyze button -->
+<div class="section fade-up-3">
+  <button class="analyze-btn" id="analyzeBtn" disabled onclick="doAnalyze()">
+    <i class="fa-solid fa-magnifying-glass" id="btnIcon"></i>
+    <span id="btnText">Analyze Screenshot</span>
+  </button>
+</div>
+
+<!-- Loading -->
+<div class="section" id="loadingSection" style="display:none">
+  <div class="loading-card visible">
+    <div class="spin-lg"></div>
+    <div class="loading-title">AI is analyzing your device...</div>
+    <div class="loading-sub">Detecting model, Android version &amp; root methods</div>
+    <div class="prog-wrap visible" id="progWrap">
+      <div class="prog-fill" id="progFill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Error -->
+<div class="section" id="errorSection" style="display:none">
+  <div class="error-box visible" id="errorBox">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span id="errorMsg"></span>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a class="footer-link" href="https://github.com/M41NUL" target="_blank"><i class="fa-brands fa-github"></i> M41NUL</a>
+    <a class="footer-link" href="https://wa.me/8801308850528" target="_blank"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+    <a class="footer-link" href="https://t.me/mdmainulislaminfo" target="_blank"><i class="fa-brands fa-telegram"></i> Telegram</a>
+  </div>
+  <div class="footer-copy">© <span id="yr"></span> Root Checker — MAINUL-X. All rights reserved.</div>
+</footer>
+
+<!-- Result sheet -->
+<div class="result-overlay" id="resultOverlay" onclick="overlayClick(event)">
+  <div class="result-sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="status-banner" id="statusBanner">
+      <div class="status-icon-wrap"><span id="statusIcon"></span></div>
+      <div class="status-text">
+        <h2 id="statusTitle"></h2>
+        <p id="statusSub"></p>
+      </div>
+    </div>
+
+    <div class="info-block" id="deviceBlock">
+      <div class="info-block-header">Device Information</div>
+      <div id="deviceRows"></div>
+    </div>
+
+    <div class="reasons-wrap" id="reasonsWrap">
+      <div class="reasons-header" id="reasonsHeader">Analysis</div>
+      <div id="reasonsList"></div>
+    </div>
+
+    <div class="contact-wrap" id="contactWrap" style="display:none">
+      <p class="contact-note">Want to root your device? Contact admin for help.</p>
+      <a class="btn-wa" id="waLink" target="_blank">
+        <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp
+      </a>
+    </div>
+
+    <div class="close-row">
+      <button class="btn-close" onclick="closeResult()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var b64Data = null;
+  var mime = 'image/jpeg';
+
+  // ── Drag & drop ──────────────────────────
+  function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
+  function onDragLeave() { document.getElementById('dropZone').classList.remove('dragover'); }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('dragover');
+    var f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleFile(f);
+  }
+  function onFileChange(input) {
+    var f = input.files[0]; if (!f) return;
+    handleFile(f); input.value = '';
+  }
+
+  function handleFile(file) {
+    mime = file.type || 'image/jpeg';
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('previewArea').classList.add('visible');
+    document.getElementById('previewLoader').classList.add('visible');
+    document.getElementById('analyzeBtn').disabled = true;
+    hideError();
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      b64Data = e.target.result.split(',')[1];
+      var img = document.getElementById('previewImg');
+      img.src = e.target.result;
+      img.onload = function() {
+        document.getElementById('previewLoader').classList.remove('visible');
+        document.getElementById('analyzeBtn').disabled = false;
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── Progress ─────────────────────────────
+  function setProgress(p) {
+    document.getElementById('progFill').style.width = Math.min(p, 100) + '%';
+  }
+
+  function hideError() {
+    document.getElementById('errorSection').style.display = 'none';
+  }
+  function showError(msg) {
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorSection').style.display = '';
+  }
+
+  // ── Analyze ──────────────────────────────
+  async function doAnalyze() {
+    if (!b64Data) return;
+
+    var btn  = document.getElementById('analyzeBtn');
+    var icon = document.getElementById('btnIcon');
+    var text = document.getElementById('btnText');
+
+    btn.disabled = true;
+    icon.style.display = 'none';
+    var sp = document.createElement('div');
+    sp.style.cssText = 'width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0';
+    btn.insertBefore(sp, text);
+    text.textContent = 'Analyzing...';
+
+    hideError();
+    document.getElementById('loadingSection').style.display = '';
+    setProgress(10);
+
+    var prog = 10;
+    var progTimer = setInterval(function() {
+      prog = Math.min(prog + Math.random() * 7, 82);
+      setProgress(prog);
+    }, 600);
+
+    try {
+      var res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_data: b64Data, media_type: mime })
+      });
+
+      clearInterval(progTimer);
+      setProgress(95);
+
+      var result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Server error');
+
+      setProgress(100);
+      await delay(300);
+
+      showResult(result);
+      btn.classList.add('flash-green');
+      setTimeout(function() { btn.classList.remove('flash-green'); }, 900);
+
+    } catch(err) {
+      clearInterval(progTimer);
+      showError('Analysis failed: ' + (err.message || 'Please try again.'));
+    } finally {
+      document.getElementById('loadingSection').style.display = 'none';
+      setProgress(0);
+      btn.disabled = false;
+      icon.style.display = '';
+      sp.remove();
+      text.textContent = 'Analyze Screenshot';
+    }
+  }
+
+  function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+  // ── Show result ───────────────────────────
+  function showResult(r) {
+    var di = r.device_info || {};
+    var status = r.root_status || 'unknown';
+
+    // Banner
+    var banner = document.getElementById('statusBanner');
+    banner.className = 'status-banner ' + status;
+    document.getElementById('statusIcon').textContent =
+      status === 'rootable' ? '✅' : status === 'not_rootable' ? '❌' : '⚠️';
+    document.getElementById('statusTitle').textContent =
+      status === 'rootable' ? 'Root Possible' : status === 'not_rootable' ? 'Cannot Be Rooted' : 'Uncertain';
+    document.getElementById('statusSub').textContent = r.root_verdict || '';
+
+    // Device info
+    var rows = document.getElementById('deviceRows');
+    rows.innerHTML = '';
+    [
+      ['Brand', di.brand], ['Model', di.model],
+      ['Android', di.android_version], ['Security Patch', di.security_patch],
+      ['Build Number', di.build_number], ['Processor', di.processor],
+      ['UI Version', di.ui_version], ['RAM', di.ram], ['Storage', di.storage],
+    ].forEach(function(p) {
+      if (p[1] && p[1] !== 'Unknown') {
+        var d = document.createElement('div');
+        d.className = 'info-row';
+        d.innerHTML = '<span class="lbl">' + p[0] + '</span><span class="val">' + p[1] + '</span>';
+        rows.appendChild(d);
+      }
+    });
+
+    // Reasons
+    document.getElementById('reasonsHeader').textContent =
+      status === 'rootable' ? 'Why Root is Possible' :
+      status === 'not_rootable' ? 'Why Root is Not Possible' : 'Analysis Details';
+    var list = document.getElementById('reasonsList');
+    list.innerHTML = '';
+    (r.reasons || []).forEach(function(txt) {
+      var item = document.createElement('div');
+      item.className = 'reason-item';
+      item.innerHTML = '<div class="reason-dot"></div><div class="reason-text">' + txt + '</div>';
+      list.appendChild(item);
+    });
+
+    // WhatsApp contact (rootable only)
+    var cw = document.getElementById('contactWrap');
+    if (status === 'rootable') {
+      var model = ((di.brand || '') + ' ' + (di.model || '')).trim();
+      var waMsg = encodeURIComponent('Hello Admin, I want to root my ' + model + '. Can you help me?');
+      document.getElementById('waLink').href = 'https://wa.me/8801308850528?text=' + waMsg;
+      cw.style.display = '';
+    } else {
+      cw.style.display = 'none';
+    }
+
+    // Open sheet
+    document.getElementById('resultOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeResult() {
+    document.getElementById('resultOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  function overlayClick(e) {
+    if (e.target === document.getElementById('resultOverlay')) closeResult();
+  }
+
+  document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
