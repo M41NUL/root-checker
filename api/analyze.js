@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -7,13 +6,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured. Add ANTHROPIC_API_KEY in Vercel Environment Variables.' });
+    return res.status(500).json({ error: 'API key not configured. Add GEMINI_API_KEY in Vercel Environment Variables.' });
   }
 
   const { image_data, media_type } = req.body;
-
   if (!image_data || !media_type) {
     return res.status(400).json({ error: 'image_data and media_type are required' });
   }
@@ -53,26 +51,27 @@ Rules:
 - If the screenshot is not a device info page, set root_status to "unknown" and explain in reasons`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
+        contents: [{
+          parts: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type, data: image_data }
+              inline_data: {
+                mime_type: media_type,
+                data: image_data
+              }
             },
-            { type: 'text', text: prompt }
+            { text: prompt }
           ]
-        }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1000,
+        }
       })
     });
 
@@ -82,7 +81,7 @@ Rules:
       return res.status(500).json({ error: data.error.message });
     }
 
-    const rawText = data.content.map(i => i.text || '').join('');
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const cleaned = rawText.replace(/```json|```/g, '').trim();
     const result = JSON.parse(cleaned);
 
